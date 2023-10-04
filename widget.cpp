@@ -1,5 +1,6 @@
 #include "widget.h"
 #include <QGraphicsRectItem>
+#include <QGraphicsEllipseItem>
 #include <QTimer>
 #include <QMouseEvent>
 
@@ -31,10 +32,14 @@ View::View()
 {
     resize(800, 600);
     m_scene->setSceneRect(0,0,800,600);
-    createEntity(400,590,800, 20,m_bottomWall);
-    createEntity(10, 300, 20,600,m_leftWall);
-    createEntity(790,300, 20,600,m_rightWall);
-    createEntity(400, 10, 20,600,m_topWall);
+    //top
+    createEntity(400,590,800, 20,m_horizontalWall);
+    //left
+    createEntity(10, 300, 20,600,m_verticalWall);
+    //right
+    createEntity(790,300, 20,600,m_verticalWall);
+    //bottom
+    createEntity(400, 10, 800, 20,m_horizontalWall);
     setScene(m_scene);
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &View::updateScene);
@@ -49,7 +54,7 @@ b2Body *View::createEntity(int pos_x, int pos_y, int size_x, int size_y, uintptr
 {
     b2BodyDef bodyDef;
     bodyDef.position.Set(pixel_to_meters(pos_x), pixel_to_meters(pos_y));
-    if(type == m_box)
+    if(type == m_box || type == m_circle)
     {
         bodyDef.type = b2_dynamicBody;
     }
@@ -58,14 +63,27 @@ b2Body *View::createEntity(int pos_x, int pos_y, int size_x, int size_y, uintptr
         bodyDef.type = b2_staticBody;
     }
 
-    b2PolygonShape b2shape;
-    b2shape.SetAsBox(pixel_to_meters(size_x/2.0),pixel_to_meters(size_y/2.0));
+
+
 
     b2FixtureDef fixtureDef;
     fixtureDef.density = 1.0;
-    fixtureDef.friction = 0.4;
-    fixtureDef.restitution= 0.5;
-    fixtureDef.shape = &b2shape;
+    if(type != m_circle)
+    {
+        fixtureDef.friction = 0.4;
+        fixtureDef.restitution= 0.5;
+        b2PolygonShape b2shape;
+        b2shape.SetAsBox(pixel_to_meters(size_x/2.0),pixel_to_meters(size_y/2.0));
+        fixtureDef.shape = &b2shape;
+    }
+    else
+    {
+        fixtureDef.friction = 0.6;
+        fixtureDef.restitution= 0.8;
+        b2CircleShape b2shape;
+        b2shape.m_radius = pixel_to_meters(size_x/2.0);
+        fixtureDef.shape = &b2shape;
+    }
 
     b2Body* res = m_world.CreateBody(&bodyDef);
     res->CreateFixture(&fixtureDef);
@@ -81,7 +99,7 @@ void View::displayWorld()
 
     for (b2Body* body= m_world.GetBodyList(); body!=nullptr; body=body->GetNext())
     {
-        if(body->GetUserData().pointer == m_bottomWall || body->GetUserData().pointer == m_topWall)
+        if(body->GetUserData().pointer == m_horizontalWall)
         {
             int w = 800;
             int h = 20;
@@ -93,7 +111,7 @@ void View::displayWorld()
             rectItem->setPen(QPen(Qt::white));
             m_scene->addItem(rectItem);
         }
-        else if(body->GetUserData().pointer == m_leftWall || body->GetUserData().pointer == m_rightWall)
+        else if(body->GetUserData().pointer == m_verticalWall)
         {
             int w = 20;
             int h = 600;
@@ -116,6 +134,17 @@ void View::displayWorld()
             rectItem->setPen(QPen(Qt::blue));
             m_scene->addItem(rectItem);
         }
+        else if(body->GetUserData().pointer == m_circle){
+            int w = 25;
+            int h = 25;
+            QGraphicsEllipseItem* rectItem = new QGraphicsEllipseItem(-w/2.0f, -h/2.0f, w, h);
+            rectItem->setTransformOriginPoint(QPointF(0.0f, 0.0f));
+            rectItem->setPos(meters_to_pixels(body->GetPosition().x), meters_to_pixels(body->GetPosition().y));
+            //rectItem->setRotation(rad_to_deg(body->GetAngle()));
+            rectItem->setBrush(QBrush(Qt::red));
+            rectItem->setPen(QPen(Qt::red));
+            m_scene->addItem(rectItem);
+        }
     }
 }
 
@@ -127,5 +156,12 @@ void View::updateScene()
 
 void View::mouseReleaseEvent(QMouseEvent *event)
 {
-    createEntity(event->position().x(), event->position().y(), 25, 25, m_box);
+    if(event->button() == Qt::LeftButton)
+    {
+        createEntity(event->position().x(), event->position().y(), 25, 25, m_box);
+    }
+    if(event->button() == Qt::RightButton)
+    {
+        createEntity(event->position().x(), event->position().y(), 25, 25, m_circle);
+    }
 }

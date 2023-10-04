@@ -23,7 +23,7 @@ public:
 private slots:
     void updateScene();
 private:
-    uintptr_t m_leftWall = 0x00, m_rightWall = 0x01, m_topWall = 0x02, m_bottomWall = 0x03, m_box = 0x04;
+    uintptr_t m_horizontalWall = 0, m_verticalWall = 1, m_box = 2,  m_circle =4 ;
     b2World m_world;
     QGraphicsScene* m_scene;
 
