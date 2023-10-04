@@ -31,7 +31,10 @@ View::View()
 {
     resize(800, 600);
     m_scene->setSceneRect(0,0,800,600);
-    create_box(400,590,800,20,b2_staticBody);
+    createEntity(400,590,800, 20,m_bottomWall);
+    createEntity(10, 300, 20,600,m_leftWall);
+    createEntity(790,300, 20,600,m_rightWall);
+    createEntity(400, 10, 20,600,m_topWall);
     setScene(m_scene);
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &View::updateScene);
@@ -42,12 +45,18 @@ View::~View()
 {
 }
 
-b2Body *View::create_box(int pos_x, int pos_y, int size_x, int size_y, b2BodyType type)
+b2Body *View::createEntity(int pos_x, int pos_y, int size_x, int size_y, uintptr_t type)
 {
     b2BodyDef bodyDef;
     bodyDef.position.Set(pixel_to_meters(pos_x), pixel_to_meters(pos_y));
-    bodyDef.type = type;
-
+    if(type == m_box)
+    {
+        bodyDef.type = b2_dynamicBody;
+    }
+    else
+    {
+        bodyDef.type = b2_staticBody;
+    }
 
     b2PolygonShape b2shape;
     b2shape.SetAsBox(pixel_to_meters(size_x/2.0),pixel_to_meters(size_y/2.0));
@@ -60,23 +69,7 @@ b2Body *View::create_box(int pos_x, int pos_y, int size_x, int size_y, b2BodyTyp
 
     b2Body* res = m_world.CreateBody(&bodyDef);
     res->CreateFixture(&fixtureDef);
-
-    QGraphicsRectItem* shape = new QGraphicsRectItem(-size_x/2.0, -size_y/2.0, size_x, size_y);
-    shape->setTransformOriginPoint(-size_x/2.0, -size_y/2.0);
-    shape->setPos(pos_x, pos_y);
-
-    if(type == b2_dynamicBody)
-    {
-        shape->setBrush(QBrush(Qt::blue));
-        shape->setPen(QPen(Qt::blue));
-        res->GetUserData().pointer = dynamicBody;
-    }
-    else
-    {
-        shape->setBrush(QBrush(Qt::white));
-        shape->setPen(QPen(Qt::white));
-        res->GetUserData().pointer = staticBoddy;
-    }
+    res->GetUserData().pointer = type;
 
     return res;
 }
@@ -88,7 +81,7 @@ void View::displayWorld()
 
     for (b2Body* body= m_world.GetBodyList(); body!=nullptr; body=body->GetNext())
     {
-        if(body->GetUserData().pointer == staticBoddy)
+        if(body->GetUserData().pointer == m_bottomWall || body->GetUserData().pointer == m_topWall)
         {
             int w = 800;
             int h = 20;
@@ -100,7 +93,19 @@ void View::displayWorld()
             rectItem->setPen(QPen(Qt::white));
             m_scene->addItem(rectItem);
         }
-        else if(body->GetUserData().pointer == dynamicBody){
+        else if(body->GetUserData().pointer == m_leftWall || body->GetUserData().pointer == m_rightWall)
+        {
+            int w = 20;
+            int h = 600;
+            QGraphicsRectItem* rectItem = new QGraphicsRectItem(-w/2.0f, -h/2.0f, w, h);
+            rectItem->setTransformOriginPoint(QPointF(w/2.0f, h/2.0f));
+            rectItem->setPos(meters_to_pixels(body->GetPosition().x), meters_to_pixels(body->GetPosition().y));
+            rectItem->setRotation(rad_to_deg(body->GetAngle()));
+            rectItem->setBrush(QBrush(Qt::white));
+            rectItem->setPen(QPen(Qt::white));
+            m_scene->addItem(rectItem);
+        }
+        else if(body->GetUserData().pointer == m_box){
             int w = 25;
             int h = 25;
             QGraphicsRectItem* rectItem = new QGraphicsRectItem(-w/2.0f, -h/2.0f, w, h);
@@ -122,5 +127,5 @@ void View::updateScene()
 
 void View::mouseReleaseEvent(QMouseEvent *event)
 {
-    create_box(event->position().x(), event->position().y(), 25, 25, b2_dynamicBody);
+    createEntity(event->position().x(), event->position().y(), 25, 25, m_box);
 }

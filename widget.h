@@ -18,12 +18,12 @@ public:
     static float deg_to_rad(const float& x);
     static float rad_to_deg(const float& x);
 
-    b2Body* create_box(int pos_x,int pos_y, int size_x,int size_y,b2BodyType type = b2_dynamicBody);
+    b2Body* createEntity(int pos_x,int pos_y, int size_x,int size_y, uintptr_t type);
     void displayWorld();
 private slots:
     void updateScene();
 private:
-    uintptr_t staticBoddy = 0x00, dynamicBody = 0x01 ;
+    uintptr_t m_leftWall = 0x00, m_rightWall = 0x01, m_topWall = 0x02, m_bottomWall = 0x03, m_box = 0x04;
     b2World m_world;
     QGraphicsScene* m_scene;
 
